@@ -1,0 +1,11 @@
+D:\Source\FileArchiver\FileArchiver\bin\Debug\netcoreapp2.2\FileArchiver.deps.json
+D:\Source\FileArchiver\FileArchiver\bin\Debug\netcoreapp2.2\FileArchiver.runtimeconfig.json
+D:\Source\FileArchiver\FileArchiver\bin\Debug\netcoreapp2.2\FileArchiver.runtimeconfig.dev.json
+D:\Source\FileArchiver\FileArchiver\bin\Debug\netcoreapp2.2\FileArchiver.dll
+D:\Source\FileArchiver\FileArchiver\bin\Debug\netcoreapp2.2\FileArchiver.pdb
+D:\Source\FileArchiver\FileArchiver\obj\Debug\netcoreapp2.2\FileArchiver.csprojAssemblyReference.cache
+D:\Source\FileArchiver\FileArchiver\obj\Debug\netcoreapp2.2\FileArchiver.csproj.CoreCompileInputs.cache
+D:\Source\FileArchiver\FileArchiver\obj\Debug\netcoreapp2.2\FileArchiver.AssemblyInfoInputs.cache
+D:\Source\FileArchiver\FileArchiver\obj\Debug\netcoreapp2.2\FileArchiver.AssemblyInfo.cs
+D:\Source\FileArchiver\FileArchiver\obj\Debug\netcoreapp2.2\FileArchiver.dll
+D:\Source\FileArchiver\FileArchiver\obj\Debug\netcoreapp2.2\FileArchiver.pdb
