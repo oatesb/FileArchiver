@@ -7,13 +7,13 @@ namespace FileArchiver
     class DetailedFileInfo : IFileMetadata
     {
         public bool MatchedSearch { get; set; }
-        public FileInfo TheFile { get; set; }
+        public FileInfoMapper TheFile { get; set; }
 
         public FileHash HashCode { get; }
 
         public DetailedFileInfo(FileInfo file, bool matchedSearch)
         {
-            TheFile = file;
+            TheFile = new FileInfoMapper(file);
             MatchedSearch = matchedSearch;
             // if it passed the search criteria hash the file
             if (MatchedSearch)

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -26,6 +27,21 @@ namespace FileArchiver
                 SearchOption.AllDirectories,
                 testBytes,
                 testDate);
+
+            ArchiveManager manager = new ArchiveManager(dfs);
+
+            manager.SearchFiles();
+            var l = manager.MakeJobList();
+
+            var json = JsonConvert.SerializeObject(l, Formatting.Indented);
+            Console.WriteLine(json);
+            Console.WriteLine("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
+            var daFiles = manager.GetAllFilesFromSearch();
+            var daFilesMatched = manager.GetFilesThatMatchedSearch();
+            var daFilesNotMatched = manager.GetFilesThatFailedToMatchedSearch();
+
+            Console.WriteLine($"Min Time: {manager.GetMinDateForMatchingFiles()} total files: {daFiles.Count()} NOT: {daFilesNotMatched.Count()} GOOD: {daFilesMatched.Count()} ");
+
 
             var filenames = dfs.FindFiles();
             PrintItems(filenames, "**********************");
@@ -70,13 +86,14 @@ namespace FileArchiver
                 .Select(group => new
                 {
                     Metric = group.Key,
+                    Details = group,
                     Count = group.Count()
                 })
                 .OrderByDescending(o => o.Count);
 
             foreach (var item in groups)
             {
-                Console.WriteLine($"{item.Metric}: {item.Count}");
+                Console.WriteLine($"{item.Metric}: {item.Count}: {item.Details.First().TheFile.Name}");
             }
 
             Console.WriteLine($"total files: {dfi.Count()} NOT: {toobig} GOOD: {passed} ");

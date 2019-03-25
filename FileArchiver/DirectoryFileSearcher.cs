@@ -63,5 +63,10 @@ namespace FileArchiver
                 return new DetailedFileInfo(fileInfo, false);
             }
         }
+
+        public DateTime ReturnMinLastModifiedTime()
+        {
+            return LastModGreaterThan;
+        }
     }
 }

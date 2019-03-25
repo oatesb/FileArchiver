@@ -6,5 +6,6 @@ namespace FileArchiver
     interface IFileSearcher
     {
         IEnumerable<DetailedFileInfo> FindFiles();
+        DateTime ReturnMinLastModifiedTime();
     }
 }

@@ -7,6 +7,6 @@ namespace FileArchiver
     interface IFileMetadata
     {
         bool MatchedSearch { get; set; }
-        FileInfo TheFile { get; set; }
+        FileInfoMapper TheFile { get; set; }
     }
 }
