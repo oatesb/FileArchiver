@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.IO.Compression;
+using System.Threading;
 
 namespace FileArchiver
 {
@@ -20,7 +22,7 @@ namespace FileArchiver
             long testBytes = 3000000;
             var testDate = DateTime.Parse("2017-03-15 00:00:00");
             string rootDir = @"z:\test";
-            //rootDir = @"Z:\Ben PC";
+            rootDir = @"Z:\Ben PC";
             DirectoryFileSearcher dfs = new DirectoryFileSearcher(
                 rootDir,
                 "*",
@@ -34,7 +36,12 @@ namespace FileArchiver
             var l = manager.MakeJobList();
 
             var json = JsonConvert.SerializeObject(l, Formatting.Indented);
-            Console.WriteLine(json);
+            //Console.WriteLine(json);
+            Zippers(l);
+
+            json = JsonConvert.SerializeObject(l, Formatting.Indented);
+           // Console.WriteLine(json);
+
             Console.WriteLine("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
             var daFiles = manager.GetAllFilesFromSearch();
             var daFilesMatched = manager.GetFilesThatMatchedSearch();
@@ -73,6 +80,64 @@ namespace FileArchiver
 
             //filenames = dfs.FindFiles();
             //PrintItems(filenames, "**********************");
+
+        }
+
+        static string MakeZipName()
+        {
+            return @"e:\zips\" + Guid.NewGuid().ToString() + ".zip";
+        }
+
+        static void Zippers(List<ArchiveFileTask> list, string zipPath = @"D:\e\zips\out.zip")
+        {
+
+            zipPath = MakeZipName();
+            if (File.Exists(zipPath))
+            {
+                File.Delete(zipPath);
+            }
+
+            File.Create(zipPath).Close();
+
+
+            foreach (var file in list.Where(f => f.Status == FileTaskStatus.NotStarted))
+            {
+                if (file.FileDetails.MatchedSearch)
+                {
+                    FileInfo ffff = new FileInfo(zipPath);
+
+                    if (ffff.Length > 20000000)
+                    {
+                        zipPath = MakeZipName();
+                        File.Create(zipPath).Close();
+                    }
+
+                    using (var zipArchive = ZipFile.Open(zipPath, ZipArchiveMode.Update))
+                    {
+                        var fileInfo = new FileInfo(file.FileDetails.TheFile.FullName);
+                        zipArchive.CreateEntryFromFile(fileInfo.FullName, fileInfo.Name);
+                        file.Status = FileTaskStatus.Done;
+                    }
+
+                }
+                else
+                {
+                    if (file.FileDetails.TheFile.Size < 60000000)
+                    {
+                        File.Copy(file.FileDetails.TheFile.FullName, @"E:\zips\" + file.FileDetails.TheFile.Name);
+                        file.Status = FileTaskStatus.Done;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Skipped {file.FileDetails.TheFile.FullName} Way too large");
+                    }
+                    
+                }
+                
+                
+
+            }
+
 
         }
         static void PrintItems(IEnumerable<DetailedFileInfo> dfi, string extra)
