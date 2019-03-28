@@ -23,7 +23,7 @@ namespace FileArchiver
             var testDate = DateTime.Parse("2017-03-15 00:00:00");
             string rootDir = @"z:\test";
             rootDir = @"Z:\Ben PC";
-            DirectoryFileSearcher dfs = new DirectoryFileSearcher(
+            IFileSearcher dfs = new DirectoryFileSearcher(
                 rootDir,
                 "*",
                 SearchOption.AllDirectories,
@@ -35,23 +35,23 @@ namespace FileArchiver
             manager.SearchFiles();
             var l = manager.MakeJobList();
 
-            var json = JsonConvert.SerializeObject(l, Formatting.Indented);
+            //var json = JsonConvert.SerializeObject(l, Formatting.Indented);
             //Console.WriteLine(json);
             Zippers(l);
 
-            json = JsonConvert.SerializeObject(l, Formatting.Indented);
-           // Console.WriteLine(json);
+            //json = JsonConvert.SerializeObject(l, Formatting.Indented);
+            //Console.WriteLine(json);
 
-            Console.WriteLine("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
-            var daFiles = manager.GetAllFilesFromSearch();
-            var daFilesMatched = manager.GetFilesThatMatchedSearch();
-            var daFilesNotMatched = manager.GetFilesThatFailedToMatchedSearch();
+            //Console.WriteLine("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
+            //var daFiles = manager.GetAllFilesFromSearch();
+            //var daFilesMatched = manager.GetFilesThatMatchedSearch();
+            //var daFilesNotMatched = manager.GetFilesThatFailedToMatchedSearch();
 
-            Console.WriteLine($"Min Time: {manager.GetMinDateForMatchingFiles()} total files: {daFiles.Count()} NOT: {daFilesNotMatched.Count()} GOOD: {daFilesMatched.Count()} ");
+            //Console.WriteLine($"Min Time: {manager.GetMinDateForMatchingFiles()} total files: {daFiles.Count()} NOT: {daFilesNotMatched.Count()} GOOD: {daFilesMatched.Count()} ");
 
 
-            var filenames = dfs.FindFiles();
-            PrintItems(filenames, "**********************");
+            //var filenames = dfs.FindFiles();
+            //PrintItems(filenames, "**********************");
 
             //testDate = DateTime.Parse("2019-03-18 15:00:00");
             //dfs = new DirectoryFileSearcher(
@@ -88,9 +88,10 @@ namespace FileArchiver
             return @"e:\zips\" + Guid.NewGuid().ToString() + ".zip";
         }
 
-        static void Zippers(List<ArchiveFileTask> list, string zipPath = @"D:\e\zips\out.zip")
+        static void Zippers(List<ArchiveFileTask> list, string zipPath = @"e:\zips\out.zip")
         {
-
+            List<IArchiverTask> at = new List<IArchiverTask>();
+            string copyRoot = @"E:\zips\";
             zipPath = MakeZipName();
             if (File.Exists(zipPath))
             {
@@ -99,7 +100,11 @@ namespace FileArchiver
 
             File.Create(zipPath).Close();
 
+            foreach (var file in list.Where(f => f.Status == FileTaskStatus.SkippedDuplicate))
+            {
+                Console.WriteLine($"Skipped file {file.FileDetails.TheFile.FullName} same HASH as {file.MasterFileTask.FileDetails.TheFile.FullName}");
 
+            }
             foreach (var file in list.Where(f => f.Status == FileTaskStatus.NotStarted))
             {
                 if (file.FileDetails.MatchedSearch)
@@ -112,31 +117,51 @@ namespace FileArchiver
                         File.Create(zipPath).Close();
                     }
 
-                    using (var zipArchive = ZipFile.Open(zipPath, ZipArchiveMode.Update))
+                    ArchiverTaskAddFileToZip f = new ArchiverTaskAddFileToZip(file, zipPath);
+                    at.Add(f);
+                    try
                     {
-                        var fileInfo = new FileInfo(file.FileDetails.TheFile.FullName);
-                        zipArchive.CreateEntryFromFile(fileInfo.FullName, fileInfo.Name);
-                        file.Status = FileTaskStatus.Done;
+                        f.DoTask();
+                        Console.WriteLine($"Zip Task Complete Added {file.FileDetails.TheFile.FullName} to {zipPath}");
+                    }
+                    catch (Exception ex)
+                    {
+
+                        Console.WriteLine($"Exception while zipping file {file.FileDetails.TheFile.FullName} to {zipPath}: EX:{ex.Message}");
+                        f.TaskFile.Status = FileTaskStatus.Failed;
                     }
 
                 }
                 else
                 {
+                    ArchiverTaskCopy c = new ArchiverTaskCopy(file, copyRoot);
+                    at.Add(c);
                     if (file.FileDetails.TheFile.Size < 60000000)
                     {
-                        File.Copy(file.FileDetails.TheFile.FullName, @"E:\zips\" + file.FileDetails.TheFile.Name);
-                        file.Status = FileTaskStatus.Done;
+                        try
+                        {
+                            c.DoTask();
+                            Console.WriteLine($"Copy Task Complete Added {file.FileDetails.TheFile.FullName} to {copyRoot}");
+                        }
+                        catch (Exception ex)
+                        {
+
+                            Console.WriteLine($"Exception while copying  file {file.FileDetails.TheFile.FullName} to {zipPath}: EX:{ex.Message}");
+                            c.TaskFile.Status = FileTaskStatus.Failed;
+                        }
                     }
                     else
                     {
                         Console.WriteLine($"Skipped {file.FileDetails.TheFile.FullName} Way too large");
+                        c.TaskFile.Status = FileTaskStatus.SkippedTooLarge;
                     }
                     
                 }
-                
-                
-
             }
+
+            var json = JsonConvert.SerializeObject(at, Formatting.Indented);
+            //Console.WriteLine(json);
+            File.WriteAllText(Path.Combine(copyRoot, "report.json"), json);
 
 
         }

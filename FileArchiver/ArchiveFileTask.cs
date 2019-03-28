@@ -6,7 +6,7 @@ using System.Text;
 
 namespace FileArchiver
 {
-    enum FileTaskStatus { NotStarted, Done, Failed, SkippedDuplicate, SkippedFailedToHash };
+    enum FileTaskStatus { NotStarted, Done, Failed, SkippedDuplicate, SkippedFailedToHash, SkippedTooLarge };
 
     class ArchiveFileTask
     {

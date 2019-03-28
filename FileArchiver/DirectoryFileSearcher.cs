@@ -31,37 +31,27 @@ namespace FileArchiver
             IgnoreFilesGreaterThanBytes = ignoreFilesGreaterThanBytes;
                         
         }
-        public IEnumerable<DetailedFileInfo> FindFiles()
+        public IReadOnlyList<DetailedFileInfo> FindFiles()
         {
             Console.WriteLine("Compiling File List...");
 
             List<DetailedFileInfo> list = new List<DetailedFileInfo>();
             // only filer on the modified date.  Never return anything before the last mod date
-            var allFileList = Directory.GetFiles(RootDirectory, SearchPattern, DirSearchOption)
-                                .Where(s => new FileInfo(s).LastWriteTime > LastModGreaterThan)
-                                .Select(s => Path.GetFullPath(s));
+            return Directory.GetFiles(RootDirectory, SearchPattern, DirSearchOption)
+                                .Select(fi => new FileInfo(fi))
+                                .Where(fi =>fi.LastWriteTime > LastModGreaterThan)
+                                .Select(fi => FileMatchCriteria(fi))
+                                .ToList<DetailedFileInfo>();
 
-            Console.WriteLine("Marking the Matching Files...");
-            foreach (var item in allFileList)
-            {
-                 list.Add(FileMatchCriteria(new FileInfo(item)));
-            }
-            
-            Console.WriteLine("Returning File List");
-
-            return list.ToArray();
         }
 
         private DetailedFileInfo FileMatchCriteria(FileInfo fileInfo)
         {
-            if (IgnoreFilesGreaterThanBytes < 0 || fileInfo.Length < IgnoreFilesGreaterThanBytes)
-            {
-                return new DetailedFileInfo(fileInfo, true);
-            }
-            else
+            if (IgnoreFilesGreaterThanBytes >= 0 && fileInfo.Length >= IgnoreFilesGreaterThanBytes)
             {
                 return new DetailedFileInfo(fileInfo, false);
             }
+            return new DetailedFileInfo(fileInfo, true);
         }
 
         public DateTime ReturnMinLastModifiedTime()
