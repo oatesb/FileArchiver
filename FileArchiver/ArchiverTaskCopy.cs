@@ -11,6 +11,7 @@ namespace FileArchiver
         public ArchiveFileTask TaskFile { get; set; }
         public string CopyDestFolderPath { get; set; }
         public long MaxZipSizeBytes { get; set; }
+        string IArchiverTask.TaskStatusMsg { get; set; }
 
         public ArchiverTaskCopy(ArchiveFileTask file, string copyDestFolderPath)
         {
@@ -21,7 +22,7 @@ namespace FileArchiver
         {
             var destPath = Path.Combine(CopyDestFolderPath, TaskFile.FileDetails.TheFile.Name);
             File.Copy(TaskFile.FileDetails.TheFile.FullName, destPath, true);
-            TaskFile.Status = FileTaskStatus.Done;
+            TaskFile.Status = FileTaskStatus.DoneCopied;
         }
     }
 }

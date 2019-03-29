@@ -10,6 +10,7 @@ namespace FileArchiver
     {
         public ArchiveFileTask TaskFile { get; set; }
         public string ZipPath { get; set; }
+        public string TaskStatusMsg { get; set; }
 
         public ArchiverTaskAddFileToZip(ArchiveFileTask file, string zipPath)
         {
@@ -23,7 +24,7 @@ namespace FileArchiver
             {
                 var fileInfo = new FileInfo(TaskFile.FileDetails.TheFile.FullName);
                 zipArchive.CreateEntryFromFile(fileInfo.FullName, fileInfo.Name);
-                TaskFile.Status = FileTaskStatus.Done;
+                TaskFile.Status = FileTaskStatus.DoneZipped;
             }
         }
     }

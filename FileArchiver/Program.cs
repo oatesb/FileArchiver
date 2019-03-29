@@ -18,11 +18,12 @@ namespace FileArchiver
             //testHast(@"Z:\BenOatesCancelServiceContract.pdf");
             //testHast(@"Z:\Ben PC\izotope\iZotope_Nectar_v2_02_Production_Suite.exe");
             //testHast(@"Z:\Archiver\89edabfe-c6e6-401c-a8e4-e6d59075a280.zip");
-
+            Console.WriteLine("Starting App at {0}", DateTime.Now.ToString());
             long testBytes = 3000000;
             var testDate = DateTime.Parse("2017-03-15 00:00:00");
             string rootDir = @"z:\test";
             rootDir = @"Z:\Ben PC";
+            rootDir = @"Z:\Data-Back";
             IFileSearcher dfs = new DirectoryFileSearcher(
                 rootDir,
                 "*",
@@ -37,7 +38,9 @@ namespace FileArchiver
 
             //var json = JsonConvert.SerializeObject(l, Formatting.Indented);
             //Console.WriteLine(json);
-            Zippers(l);
+            Zippers(l, 20 * 1024 * 1024, 300 * 1024 * 1024);
+
+            Console.WriteLine("Done at {0}", DateTime.Now.ToString());
 
             //json = JsonConvert.SerializeObject(l, Formatting.Indented);
             //Console.WriteLine(json);
@@ -88,9 +91,9 @@ namespace FileArchiver
             return @"e:\zips\" + Guid.NewGuid().ToString() + ".zip";
         }
 
-        static void Zippers(List<ArchiveFileTask> list, string zipPath = @"e:\zips\out.zip")
+        static void Zippers(List<ArchiveFileTask> list, long zipLengthMax, long fileLengthToIgnore, string zipPath = @"e:\zips\out.zip")
         {
-            List<IArchiverTask> at = new List<IArchiverTask>();
+            List<IArchiverTask> archiveTasks = new List<IArchiverTask>();
             string copyRoot = @"E:\zips\";
             zipPath = MakeZipName();
             if (File.Exists(zipPath))
@@ -102,8 +105,11 @@ namespace FileArchiver
 
             foreach (var file in list.Where(f => f.Status == FileTaskStatus.SkippedDuplicate))
             {
-                Console.WriteLine($"Skipped file {file.FileDetails.TheFile.FullName} same HASH as {file.MasterFileTask.FileDetails.TheFile.FullName}");
-
+                var s = new ArchiverTaskSkipped(file,
+                    $"Skipped file {file.FileDetails.TheFile.FullName} same HASH as {file.MasterFileTask.FileDetails.TheFile.FullName}"
+                    , FileTaskStatus.SkippedDuplicate);
+                s.DoTask();
+                archiveTasks.Add(s);
             }
             foreach (var file in list.Where(f => f.Status == FileTaskStatus.NotStarted))
             {
@@ -111,14 +117,14 @@ namespace FileArchiver
                 {
                     FileInfo ffff = new FileInfo(zipPath);
 
-                    if (ffff.Length > 20000000)
+                    if (ffff.Length > zipLengthMax)
                     {
                         zipPath = MakeZipName();
                         File.Create(zipPath).Close();
                     }
 
                     ArchiverTaskAddFileToZip f = new ArchiverTaskAddFileToZip(file, zipPath);
-                    at.Add(f);
+                    archiveTasks.Add(f);
                     try
                     {
                         f.DoTask();
@@ -134,10 +140,11 @@ namespace FileArchiver
                 }
                 else
                 {
-                    ArchiverTaskCopy c = new ArchiverTaskCopy(file, copyRoot);
-                    at.Add(c);
-                    if (file.FileDetails.TheFile.Size < 60000000)
+                    
+                    if (file.FileDetails.TheFile.Size < fileLengthToIgnore)
                     {
+                        ArchiverTaskCopy c = new ArchiverTaskCopy(file, copyRoot);
+                        archiveTasks.Add(c);
                         try
                         {
                             c.DoTask();
@@ -152,18 +159,25 @@ namespace FileArchiver
                     }
                     else
                     {
-                        Console.WriteLine($"Skipped {file.FileDetails.TheFile.FullName} Way too large");
-                        c.TaskFile.Status = FileTaskStatus.SkippedTooLarge;
+                        var s = new ArchiverTaskSkipped(file,
+                            $"Skipped {file.FileDetails.TheFile.FullName} Way too large",
+                            FileTaskStatus.SkippedTooLarge);
+                        s.DoTask();
+                        archiveTasks.Add(s);
                     }
                     
                 }
             }
 
-            var json = JsonConvert.SerializeObject(at, Formatting.Indented);
-            //Console.WriteLine(json);
+            var json = JsonConvert.SerializeObject(archiveTasks, Formatting.Indented);
+            Console.WriteLine($"Completed {archiveTasks.Count} tasks total");
+            Console.WriteLine($"Zipped: {archiveTasks.Where(f => f.TaskFile.Status == FileTaskStatus.DoneZipped).Count().ToString()}");
+            Console.WriteLine($"Copied: {archiveTasks.Where(f => f.TaskFile.Status == FileTaskStatus.DoneCopied).Count().ToString()}");
+            Console.WriteLine($"Failures: {archiveTasks.Where(f => f.TaskFile.Status == FileTaskStatus.Failed).Count().ToString()}");
+            Console.WriteLine($"Skipped Duplicates: {archiveTasks.Where(f => f.TaskFile.Status == FileTaskStatus.SkippedDuplicate).Count().ToString()}");
+            Console.WriteLine($"Skipped Too Large: {archiveTasks.Where(f => f.TaskFile.Status == FileTaskStatus.SkippedTooLarge).Count().ToString()}");
+            Console.WriteLine($"Skipped Errors to HASH: {archiveTasks.Where(f => f.TaskFile.Status == FileTaskStatus.SkippedFailedToHash).Count().ToString()}");
             File.WriteAllText(Path.Combine(copyRoot, "report.json"), json);
-
-
         }
         static void PrintItems(IEnumerable<DetailedFileInfo> dfi, string extra)
         {

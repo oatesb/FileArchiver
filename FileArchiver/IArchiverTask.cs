@@ -7,6 +7,7 @@ namespace FileArchiver
     interface IArchiverTask
     {
         ArchiveFileTask TaskFile { get; set; }
+        string TaskStatusMsg { get; set; }
         void DoTask();
     }
 }
